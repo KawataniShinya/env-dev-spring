@@ -47,7 +47,7 @@ services:
     working_dir: /app/src/main/frontend
     command:
       # build:build only(for product), docker:npm run dev on docker, bash:only start container
-      build
+      docker
     networks:
       spring-network:
         aliases:
@@ -63,7 +63,6 @@ services:
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./docker/proxy/default:/etc/nginx/default
-#      - ./docker/proxy/vhost.d:/etc/nginx/vhost.d
     environment:
       - VIRTUAL_TIMEOUT=1800
     networks:
