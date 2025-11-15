@@ -1,0 +1,5 @@
+location /dist/ {
+    proxy_pass http://localhost.spring-node.sample.jp;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}

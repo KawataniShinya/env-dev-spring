@@ -1,0 +1,115 @@
+services:
+  spring-app-dev:
+    image: openjdk:17-slim
+    container_name: spring-app-dev
+    working_dir: /app
+    volumes:
+      - ./demo:/app
+      - app-dev-gradle-cache:/app/.gradle
+    command: ./gradlew bootRun
+    environment:
+      - VIRTUAL_HOST=localhost.spring-app-dev.sample.jp
+      - VIRTUAL_PORT=8080
+      - SPRING_PROFILES_ACTIVE=dev
+    expose:
+      - "8080"
+    networks:
+      spring-network:
+        aliases:
+          - localhost.spring-app-dev.sample.jp
+    depends_on:
+      - spring-build-watch
+
+  spring-build-watch:
+    image: openjdk:17-slim
+    container_name: spring-build-watch
+    working_dir: /app
+    volumes:
+      - ./demo:/app
+      - build-watch-gradle-cache:/app/.gradle
+    command: ./gradlew build --continuous
+    networks:
+      - spring-network
+
+  spring-node:
+    build:
+      context: ./docker/node
+      dockerfile: Dockerfile
+    container_name: spring-node
+    volumes:
+      - ./demo:/app
+    expose:
+      - "80"
+    environment:
+      VIRTUAL_HOST: localhost.spring-node.sample.jp
+    tty: true
+    stdin_open: true
+    working_dir: /app/src/main/frontend
+    command:
+      # build:build only(for product), docker:npm run dev on docker, bash:only start container
+      build
+    networks:
+      spring-network:
+        aliases:
+          - localhost.spring-node.sample.jp
+
+  nginx-proxy:
+    build:
+      context: ./docker/proxy
+      dockerfile: Dockerfile
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./docker/proxy/default:/etc/nginx/default
+#      - ./docker/proxy/vhost.d:/etc/nginx/vhost.d
+    environment:
+      - VIRTUAL_TIMEOUT=1800
+    networks:
+      spring-network:
+        aliases:
+          - app.localhost
+
+  spring-db:
+    build:
+      context: docker/mysql
+      dockerfile: Dockerfile
+    container_name: spring-db
+    environment:
+      TZ: "Asia/Tokyo"
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "13306:3306"
+    volumes:
+      - ./docker/mysql/env/my.cnf:/etc/mysql/my.cnf
+      - ./docker/mysql/data:/var/lib/mysql
+    networks:
+      spring-network:
+
+  redis:
+    image: redis:8.2.1-alpine3.22
+    container_name: redis
+    expose:
+      - "6379"
+    ports:
+      - "6379:6379"
+    environment:
+      TZ: "Asia/Tokyo"
+    volumes:
+      - ./redis:/data
+    networks:
+      spring-network:
+
+volumes:
+  app-dev-gradle-cache:
+  build-watch-gradle-cache:
+
+networks:
+  spring-network:
+    driver: bridge
+    internal: false
+    name: spring-network
