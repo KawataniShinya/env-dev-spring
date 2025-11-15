@@ -310,3 +310,51 @@ data # redis-cli
 3) "sessionAttr:org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository.CSRF_TOKEN"
 ...
 ```
+
+## 本番デプロイモジュールの作成と動作確認
+### 1. デプロイモジュールの作成
+コンテナを起動した状態で実行。
+(ローカル)
+```shell
+docker compose exec spring-app-dev bash
+```
+
+デプロイモジュールの作成
+(spring-app-dev コンテナ)
+```shell
+./gradlew bootJar
+```
+```
+./gradlew bootJar
+> Task :compileJava UP-TO-DATE
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
+> Task :bootJar
+
+BUILD SUCCESSFUL in 16s
+4 actionable tasks: 3 executed, 1 up-to-date
+```
+```shell
+exit
+```
+
+### 2. デプロイモジュールの動作確認
+コンテナ起動させるためにはアクセス先のデータベースが必要で、そのままでは起動に失敗するため、ここでは手順のみ記載。
+
+(ローカル)
+```shell
+ls -l% ls -l ./demo/build/libs/demo-0.0.1-SNAPSHOT.jar
+-rw-r--r--  1 hoge  hoge  68816806 11月 15 13:45 ./demo/build/libs/demo-0.0.1-SNAPSHOT.jar 
+```
+
+```shell
+docker run --rm \
+  -p 80:8080 \
+  -v $(pwd)/demo/build/libs/demo-0.0.1-SNAPSHOT.jar:/app/app.jar \
+  openjdk:17-slim \
+  java -jar /app/app.jar
+```
+
+### ToDo
+- アプリケーションコンテナがアクセスするデータベースを準備
